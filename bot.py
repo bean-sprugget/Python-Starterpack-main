@@ -83,12 +83,12 @@ def get_action_decision(game: Game) -> ActionDecision:
     # Select your decision here!
     my_player: Player = game_state.get_my_player()
     pos: Position = my_player.position
-"""
+    """
     # Let the crop of focus be the one we have a seed for, if not just choose a random crop
     
     crop = max(my_player.seed_inventory, key=my_player.seed_inventory.get) \
         if sum(my_player.seed_inventory.values()) > 0 else random.choice(list(CropType))
-"""
+    """
 
     # Get a list of positions of grapes.
     grape_positions = []
@@ -98,7 +98,7 @@ def get_action_decision(game: Game) -> ActionDecision:
                 grape_positions.append(Position(x,y))
     logger.debug(f"Grapes are located at {grape_positions}")
         
-"""
+    """
     # Get a list of possible harvest locations for our harvest radius
     possible_harvest_locations = []
     harvest_radius = my_player.harvest_radius
@@ -106,7 +106,7 @@ def get_action_decision(game: Game) -> ActionDecision:
         if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.value > 0:
             possible_harvest_locations.append(harvest_pos)
     logger.debug(f"Possible harvest locations={possible_harvest_locations}")
-"""
+    """
 
     # If we can harvest something, try to harvest it
     if len(possible_harvest_locations) > 0:
