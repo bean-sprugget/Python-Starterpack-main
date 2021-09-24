@@ -62,7 +62,7 @@ def within_move_range(game_state: GameState, name: str) -> List[Position]:
 
 def within_harvest_range(game_state: GameState, name: str) -> List[Position]:
     """
-    Returns all tiles for which player of input name can go to
+    Returns all tiles for which player of input name can harvest
     :param game_state: GameState containing information for the game
     :param name: Name of player to get
     :return: List of positions that the player can harvest

@@ -21,7 +21,6 @@ import random
 logger = Logger()
 constants = Constants()
 
-
 def get_move_decision(game: Game) -> MoveDecision:
     """
     Returns a move decision for the turn given the current game state.
@@ -43,30 +42,35 @@ def get_move_decision(game: Game) -> MoveDecision:
     my_player: Player = game_state.get_my_player()
     pos: Position = my_player.position
     logger.info(f"Currently at {my_player.position}")
-
+    
+    """
     # If we have something to sell that we harvested, then try to move towards the green grocer tiles
-    if random.random() < 0.5 and \
-            (sum(my_player.seed_inventory.values()) == 0 or
-             len(my_player.harvested_inventory)):
+    if len(my_player.harvested_inventory) >= 5:
         logger.debug("Moving towards green grocer")
-        decision = MoveDecision(Position(constants.BOARD_WIDTH // 2, max(0, pos.y - constants.MAX_MOVEMENT)))
+        decision = MoveDecision(Position(constants.BOARD_WIDTH // 2, max(0, pos.y - constants.MAX_MOVEMENT) ))
     # If not, then move randomly within the range of locations we can move to
     else:
         pos = random.choice(game_util.within_move_range(game_state, my_player.name))
         logger.debug("Moving randomly")
         decision = MoveDecision(pos)
-
+    """
+    
+    # Move towards grapes.
+    
+    
     logger.debug(f"[Turn {game_state.turn}] Sending MoveDecision: {decision}")
     return decision
-
 
 def get_action_decision(game: Game) -> ActionDecision:
     """
     Returns an action decision for the turn given the current game state.
     This is part 2 of 2 of the turn.
 
-    There are multiple action decisions that you can return here: BuyDecision,
-    HarvestDecision, PlantDecision, or UseItemDecision.
+    There are multiple action decisions that you can return here:
+        BuyDecision
+        HarvestDecision
+        PlantDecision
+        UseItemDecision
 
     After this action, the next turn will begin.
 
@@ -79,18 +83,30 @@ def get_action_decision(game: Game) -> ActionDecision:
     # Select your decision here!
     my_player: Player = game_state.get_my_player()
     pos: Position = my_player.position
+"""
     # Let the crop of focus be the one we have a seed for, if not just choose a random crop
+    
     crop = max(my_player.seed_inventory, key=my_player.seed_inventory.get) \
         if sum(my_player.seed_inventory.values()) > 0 else random.choice(list(CropType))
+"""
 
+    # Get a list of positions of grapes.
+    grape_positions = []
+    for y in game_state.tile_height:
+        for x in game_state.tile_map.map_width:
+            if game_state.tile_map.get_tile(Position(x, y)).crop.type == CropType.GRAPE:
+                grape_positions.append(Position(x,y))
+    logger.debug(f"Grapes are located at {grape_positions}")
+        
+"""
     # Get a list of possible harvest locations for our harvest radius
     possible_harvest_locations = []
     harvest_radius = my_player.harvest_radius
     for harvest_pos in game_util.within_harvest_range(game_state, my_player.name):
         if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.value > 0:
             possible_harvest_locations.append(harvest_pos)
-
     logger.debug(f"Possible harvest locations={possible_harvest_locations}")
+"""
 
     # If we can harvest something, try to harvest it
     if len(possible_harvest_locations) > 0:
@@ -120,8 +136,8 @@ def main():
     """
     Competitor TODO: choose an item and upgrade for your bot
     """
-    game = Game(ItemType.COFFEE_THERMOS, UpgradeType.SCYTHE)
-
+    game = Game(ItemType.DELIVERY_DRONE, UpgradeType.SCYTHE)
+    
     while (True):
         try:
             game.update_game()
