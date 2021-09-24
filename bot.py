@@ -101,8 +101,7 @@ def get_action_decision(game: Game) -> ActionDecision:
             game_state.tile_map.get_tile(pos.x, pos.y).type.value >= TileType.F_BAND_OUTER.value:
         logger.debug(f"Deciding to try to plant at position {pos}")
         decision = PlantDecision([crop], [pos])
-    # If we don't have that seed, but we have the money to buy it, then move towards the
-    # green grocer to buy it
+    # If we don't have that seed, but we have the money to buy it, then move towards the green grocer to buy it
     elif my_player.money >= crop.get_seed_price() and \
         game_state.tile_map.get_tile(pos.x, pos.y).type == TileType.GREEN_GROCER:
         logger.debug(f"Buy 1 of {crop}")

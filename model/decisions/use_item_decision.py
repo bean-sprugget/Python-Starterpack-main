@@ -9,4 +9,4 @@ class UseItemDecision(ActionDecision):
         return "UseItemDecision()"
 
     def engine_str(self) -> str:
-        return f"use_item"
+        return f"use_item "
