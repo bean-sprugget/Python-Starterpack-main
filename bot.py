@@ -29,7 +29,7 @@ def within_plant_range(game_state: GameState, name: str) -> List[Position]:
     :return: List of positions that the player can harvest
     """
     my_player = get_player_from_name(game_state, name)
-    radius = 1
+    radius = my_player.plant_radius
     res = []
 
     for i in range(my_player.position.y - radius, my_player.position.y + radius + 1):
