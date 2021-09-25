@@ -21,6 +21,24 @@ import random
 logger = Logger()
 constants = Constants()
 
+# move in the towards in the x-direction first, then the y-direction
+def move_towards(start: Position, original_target: Position) -> MoveDecision: 
+    remaining_distance = constants.MAX_MOVEMENT
+    displacement_x = original_target.x - start.x
+    if abs(displacement_x) < remaining_distance:
+        target_x = start.x + displacement_x
+        
+        displacement_y = original_target.y - start.y
+        if abs(displacement_y) < remaining_distance:
+            target_y = start.y + displacement_y
+        else:
+            target_y = start.y + remaining_distance
+    else:
+        target_x = start.x + remaining_distance
+        target_y = start.y
+    target = Position(target_x, target_y)
+    return MoveDecision(target)
+
 def get_move_decision(game: Game) -> MoveDecision:
     """
     Returns a move decision for the turn given the current game state.
@@ -40,6 +58,7 @@ def get_move_decision(game: Game) -> MoveDecision:
 
     # Select your decision here!
     my_player: Player = game_state.get_my_player()
+    opponent: Player = game_state.get_opponent_player()
     pos: Position = my_player.position
     logger.info(f"Currently at {my_player.position}")
     
@@ -59,21 +78,32 @@ def get_move_decision(game: Game) -> MoveDecision:
     grape_positions = []
     for y in range(game_state.tile_map.map_height):
         for x in range(game_state.tile_map.map_width):
-            if game_state.tile_map.get_tile(x,y).crop.type == CropType.GRAPE:
+            if game_state.tile_map.get_tile(x,y).crop.value > 0:
                 grape_positions.append(x,y)
     logger.debug(f"Grapes are located at {grape_positions}")
     
     if grape_positions:
+        # find closest grape
         closest_target = grape_positions[0]
         closest_distance = game_util.distance(pos, closest_target)
         for potential_target in grape_positions:
             if game_util.distance(pos, potential_target) < closest_distance:
                 closest_target = potential_target
                 closest_distance = game_util.distance(pos, closest_target)
+        
+        decision = move_towards(pos, target)
+        
+    # don't protect around opponent
+    elif game_util.distance(pos, opponent.position) <= my_player.protection_radius: #should probably also move out of their protection
+        center_x = constants.BOARD_WIDTH // 2
+        direction_x = center_x - pos.x
+        direction_x = 1 if direction_x == 0 else direction / abs(direction)
+        
+        # simply move towards the center by MAX_MOVEMENT. But I think I could make this better by somehow combining y and x movement.
+        decision = MoveDecision(Position(direction_x * constants.MAX_MOVEMENT + pos.x, pos.y) )
     
-        decision = MoveDecision(closest_target)
-    else:
-        decision = MoveDecision(Position(constants.BOARD_WIDTH // 2, max(0, pos.y - constants.MAX_MOVEMENT) ) )
+    else: # move towards opponent
+        decision = move_towards(pos, opponent.position)
     logger.debug(f"[Turn {game_state.turn}] Sending MoveDecision: {decision}")
     return decision
 
