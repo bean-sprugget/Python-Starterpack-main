@@ -21,23 +21,6 @@ import random
 logger = Logger()
 constants = Constants()
 
-def within_plant_range(game_state: GameState, name: str) -> List[Position]:
-    """
-    Returns all tiles for which player of input name can plant to
-    :param game_state: GameState containing information for the game
-    :param name: Name of player to get
-    :return: List of positions that the player can harvest
-    """
-    my_player = get_player_from_name(game_state, name)
-    radius = 1
-    res = []
-
-    for i in range(my_player.position.y - radius, my_player.position.y + radius + 1):
-        for j in range(my_player.position.x - radius, my_player.position.x + radius + 1):
-            pos = Position(j, i)
-            if distance(my_player.position, pos) <= radius and valid_position(pos):
-                res.append(pos)
-    return res
 
 def get_move_decision(game: Game) -> MoveDecision:
     """
@@ -53,33 +36,14 @@ def get_move_decision(game: Game) -> MoveDecision:
     :param: game The object that contains the game state and other related information
     :returns: MoveDecision A location for the bot to move to this turn
     """
-    
     game_state: GameState = game.get_game_state()
     logger.debug(f"[Turn {game_state.turn}] Feedback received from engine: {game_state.feedback}")
 
     # Select your decision here!
     my_player: Player = game_state.get_my_player()
-    my_pos: Position = my_player.position
+    pos: Position = my_player.position
     logger.info(f"Currently at {my_player.position}")
-    
-    # buy when no seed / sell when full inventory
-    if (sum(my_player.seed_inventory.values()) == 0 or len(my_player.harvested_inventory) >= constants.CARRYING_CAPACITY):
-        remain_dist = constants.MAX_MOVEMENT - game_util.distance(my_pos, Position(constants.BOARD_WIDTH // 2, my_pos.y))
-        if (game_util.distance(my_pos, Position(constants.BOARD_WIDTH // 2, 0)) <= constants.MAX_MOVEMENT):
-            decision = MoveDecision(Position(constants.BOARD_WIDTH // 2, 0))
-        elif (remain_dist >= 0):
-            decision = MoveDecision(Position(constants.BOARD_WIDTH // 2, my_pos.y - remain_dist))
-        else:
-            if (my_pos.x <= constants.BOARD_WIDTH // 2):
-                decision = MoveDecision(Position(my_pos.x + constants.MAX_MOVEMENT, my_pos.y))
-            else:
-                decision = MoveDecision(Position(my_pos.x - constants.MAX_MOVEMENT, my_pos.y))
-    # harvest when 
-    ## elif ():
-    # plant
-    return decision
-            
-    """
+
     # If we have something to sell that we harvested, then try to move towards the green grocer tiles
     if random.random() < 0.5 and \
             (sum(my_player.seed_inventory.values()) == 0 or
@@ -94,7 +58,7 @@ def get_move_decision(game: Game) -> MoveDecision:
 
     logger.debug(f"[Turn {game_state.turn}] Sending MoveDecision: {decision}")
     return decision
-    """
+
 
 def get_action_decision(game: Game) -> ActionDecision:
     """
@@ -111,43 +75,7 @@ def get_action_decision(game: Game) -> ActionDecision:
     """
     game_state: GameState = game.get_game_state()
     logger.debug(f"[Turn {game_state.turn}] Feedback received from engine: {game_state.feedback}")
-    
-    # harvest
-    possible_harvest_locations = []
-    harvest_radius = my_player.harvest_radius
-    for harvest_pos in game_util.within_harvest_range(game_state, my_player.name):
-        if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.value > 0:
-            possible_harvest_locations.append(harvest_pos)
-    if len(possible_harvest_locations) > 0:
-        decision = HarvestDecision(possible_harvest_locations)
-    
-    # buying corn seeds
-    else:
-        purchase_amount = my_player.money // CropType.Corn.get_seed_price()
-        if game_state.tile_map.get_tile(my_player.x, my_player.y).type == TileType.GREEN_GROCER
-                and purchase_amount > 0:
-            decision = BuyDecision([Corn], [purchase_amount])
-        
-    # planting: corn must be in the fertility band for 2 turns and be harvested
-        else:
-            planting_list = []
-            seeds_remaining = player.seed_inventory[CropType.CORN]
-            for plant_pos in within_plant_range(game_state, my_player.name):
-                if seeds_remaining <= 0: break
-                stay_fertile = true
-                for (i in range(0, 2)):
-                    if game_util.tile_type_on_turn(game_state.turn + i, game_state, coord).get_fertility < 1:
-                    stay_fertile = false
-                    break
-                if stay_fertile:
-                    planting_list.append(plant_pos)
-                    seeds_remaining--
-            if planting_list:
-                decision = PlantDecision(List[CropType.CORN for i in range(len(planting_list))], planting_list)
-            else: 
-                logger.debug(f"do nothing")
-                decision = DoNothingDecision
-    """
+
     # Select your decision here!
     my_player: Player = game_state.get_my_player()
     pos: Position = my_player.position
@@ -184,8 +112,6 @@ def get_action_decision(game: Game) -> ActionDecision:
         decision = DoNothingDecision()
 
     logger.debug(f"[Turn {game_state.turn}] Sending ActionDecision: {decision}")
-    """
-    
     return decision
 
 
