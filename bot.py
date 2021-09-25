@@ -124,7 +124,7 @@ def get_action_decision(game: Game) -> ActionDecision:
     # buying corn seeds
     else:
         purchase_amount = my_player.money // CropType.Corn.get_seed_price()
-        if game_state.tile_map.get_tile(my_player.x, my_player.y).type == TileType.GREEN_GROCER
+        if game_state.tile_map.get_tile(my_player.x, my_player.y).type == TileType.GREEN_GROCER \
                 and purchase_amount > 0:
             decision = BuyDecision([Corn], [purchase_amount])
         
@@ -135,13 +135,13 @@ def get_action_decision(game: Game) -> ActionDecision:
             for plant_pos in within_plant_range(game_state, my_player.name):
                 if seeds_remaining <= 0: break
                 stay_fertile = true
-                for (i in range(0, 2)):
+                for i in range(0, 2):
                     if game_util.tile_type_on_turn(game_state.turn + i, game_state, coord).get_fertility < 1:
-                    stay_fertile = false
-                    break
+                        stay_fertile = false
+                        break
                 if stay_fertile:
                     planting_list.append(plant_pos)
-                    seeds_remaining--
+                    seeds_remaining -= 1
             if planting_list:
                 decision = PlantDecision(List[CropType.CORN for i in range(len(planting_list))], planting_list)
             else: 
