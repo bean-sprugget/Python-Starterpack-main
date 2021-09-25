@@ -15,12 +15,12 @@ from model.upgrade_type import UpgradeType
 from model.game_state import GameState
 from model.player import Player
 from api.constants import Constants
+from typing import List
 
 import random
 
 logger = Logger()
 constants = Constants()
-
 
 def get_move_decision(game: Game) -> MoveDecision:
     """
@@ -43,11 +43,31 @@ def get_move_decision(game: Game) -> MoveDecision:
     my_player: Player = game_state.get_my_player()
     pos: Position = my_player.position
     logger.info(f"Currently at {my_player.position}")
+    
+    if (my_player == game_state.player1):
+        posArr = (Position(3,1),Position(4,3),Position(2,4),Position(1,2))
+    elif (my_player == game_state.player2):
+        posArr = (Position(constants.BOARD_WIDTH-3,1),Position(constants.BOARD_WIDTH-4,3),Position(constants.BOARD_WIDTH-2,4),Position(constants.BOARD_WIDTH-1,2))
 
+    # at end and beginning: to green grocer
+    if (game_state.turn == 1):
+        return MoveDecision(posArr[0])
+    elif game_state.turn == 2 or game_state.turn > 170:
+        if (my_player == game_state.player1):
+            return MoveDecision(Position((constants.BOARD_WIDTH // 2) - (constants.GREEN_GROCER_LENGTH // 2), 0))
+        elif (my_player == game_state.player2):
+            return MoveDecision(Position((constants.BOARD_WIDTH // 2) + (constants.GREEN_GROCER_LENGTH // 2), 0))
+    # between: plant and harvest loop
+    else:
+        for pos in posArr:
+            if (is_item_used and sum(my_player.seed_inventory.values()) == 0 or len(my_player.harvested_inventory)):
+                return MoveDecision(Position((constants.BOARD_WIDTH // 2) - (constants.GREEN_GROCER_LENGTH // 2), 0))
+            else:
+                return MoveDecision(pos)
+ 
+    """
     # If we have something to sell that we harvested, then try to move towards the green grocer tiles
-    if random.random() < 0.5 and \
-            (sum(my_player.seed_inventory.values()) == 0 or
-             len(my_player.harvested_inventory)):
+    if (sum(my_player.seed_inventory.values()) == 0 or len(my_player.harvested_inventory)):
         logger.debug("Moving towards green grocer")
         decision = MoveDecision(Position(constants.BOARD_WIDTH // 2, max(0, pos.y - constants.MAX_MOVEMENT)))
     # If not, then move randomly within the range of locations we can move to
@@ -58,7 +78,7 @@ def get_move_decision(game: Game) -> MoveDecision:
 
     logger.debug(f"[Turn {game_state.turn}] Sending MoveDecision: {decision}")
     return decision
-
+    """
 
 def get_action_decision(game: Game) -> ActionDecision:
     """
@@ -79,10 +99,69 @@ def get_action_decision(game: Game) -> ActionDecision:
     # Select your decision here!
     my_player: Player = game_state.get_my_player()
     pos: Position = my_player.position
+    
+    def within_plant_range(game_state: GameState, name: str) -> List[Position]:
+        """
+        Returns all tiles for which player of input name can go to
+        :param game_state: GameState containing information for the game
+        :param name: Name of player to get
+        :return: List of positions that the player can plant
+        """
+        my_player = game_util.get_player_from_name(game_state, name)
+        radius = my_player.plant_radius
+        res = []
+
+        for i in range(my_player.position.y - radius, my_player.position.y + radius + 1):
+            for j in range(my_player.position.x - radius, my_player.position.x + radius + 1):
+                pos = Position(j, i)
+                if game_util.distance(my_player.position, pos) <= my_player.plant_radius and game_util.valid_position(pos):
+                    res.append(pos)
+        return res
+    
+    # at end and beginning: buy/sell from green grocer
+    if game_state.turn == 2:
+        return BuyDecision([crop_type.POTATO],[constants.BACKPACK_CARRYING_CAPACITY - (my_player.harvested_inventory + sum(my_player.seed_inventory.values()))])
+    # between: plant and harvest loop
+    else:
+        # possible harvest locations
+        possible_harvest_locations = []
+        harvest_radius = my_player.harvest_radius
+        for harvest_pos in game_util.within_harvest_range(game_state, my_player.name):
+            if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.value > 0:
+                possible_harvest_locations.append(harvest_pos)
+        logger.debug(f"Possible harvest locations={possible_harvest_locations}")
+        
+        # possible plant locations
+        possible_plant_locations = []
+        plant_radius = my_player.plant_radius
+        for plant_pos in within_plant_range(game_state, my_player.name):
+            if game_state.tile_map.get_tile(plant_pos.x, plant_pos.y).crop.value == 0:
+                possible_plant_locations.append(plant_pos)
+                
+        logger.debug(f"Possible harvest locations={possible_plant_locations}")
+        
+        if (sum(my_player.seed_inventory.values()) == 0 or len(my_player.harvested_inventory)):
+            if not is_item_used:
+                UseItemDecision(pos)
+                is_item_used = True
+        else:
+            # If we can harvest something, try to harvest it
+            if len(possible_harvest_locations) > 0:
+                decision = HarvestDecision(possible_harvest_locations)
+            # If not but we have that seed, then plant it
+            elif my_player.seed_inventory[crop_type.POTATO] > 0:
+                logger.debug(f"Deciding to try to plant at position {pos}")
+                decision = PlantDecision([crop_type.POTATO], possible_plant_locations)
+            # If we can't do any of that, then just do nothing (move around some more)
+            else:
+                logger.debug(f"Couldn't find anything to do, waiting for move step")
+                decision = DoNothingDecision()
+            
+    """
     # Let the crop of focus be the one we have a seed for, if not just choose a random crop
     crop = max(my_player.seed_inventory, key=my_player.seed_inventory.get) \
         if sum(my_player.seed_inventory.values()) > 0 else random.choice(list(CropType))
-
+    
     # Get a list of possible harvest locations for our harvest radius
     possible_harvest_locations = []
     harvest_radius = my_player.harvest_radius
@@ -113,13 +192,13 @@ def get_action_decision(game: Game) -> ActionDecision:
 
     logger.debug(f"[Turn {game_state.turn}] Sending ActionDecision: {decision}")
     return decision
-
+    """
 
 def main():
     """
     Competitor TODO: choose an item and upgrade for your bot
     """
-    game = Game(ItemType.COFFEE_THERMOS, UpgradeType.SCYTHE)
+    game = Game(ItemType.DELIVERY_DRONE, UpgradeType.RABBITS_FOOT)
 
     while (True):
         try:
