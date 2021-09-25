@@ -56,7 +56,20 @@ def get_move_decision(game: Game) -> MoveDecision:
     """
     
     # Move towards grapes.
+    grape_positions = []
+    for y in game_state.tile_height:
+        for x in game_state.tile_map.map_width:
+            if game_state.tile_map.get_tile(Position(x, y)).crop.type == CropType.GRAPE:
+                grape_positions.append(Position(x,y))
+    logger.debug(f"Grapes are located at {grape_positions}")
+        
+    closest_target = grape_postitions[0]
+    closest_distance = game_util.distance(pos, closest_target)
+    for potential_target in grape_positions: if game_util.distance(pos, potential_target) < closest_distance:
+        closest_target = potential_target
+        closest_distance = game_util.distance(pos, closest_target)
     
+    decision = MoveDecision(closest_target)
     
     logger.debug(f"[Turn {game_state.turn}] Sending MoveDecision: {decision}")
     return decision
@@ -89,34 +102,37 @@ def get_action_decision(game: Game) -> ActionDecision:
     crop = max(my_player.seed_inventory, key=my_player.seed_inventory.get) \
         if sum(my_player.seed_inventory.values()) > 0 else random.choice(list(CropType))
     """
-
-    # Get a list of positions of grapes.
-    grape_positions = []
-    for y in game_state.tile_height:
-        for x in game_state.tile_map.map_width:
-            if game_state.tile_map.get_tile(Position(x, y)).crop.type == CropType.GRAPE:
-                grape_positions.append(Position(x,y))
-    logger.debug(f"Grapes are located at {grape_positions}")
-        
-    """
-    # Get a list of possible harvest locations for our harvest radius
+    # Default to doing nothing.
+    logger.debug(f"Couldn't find anything to do, waiting for move step")
+    decision = DoNothingDecision()
+    
+    # If I have 5 grapes, sell them using the DELIVERY_DRONE
+    # harvested_inventory is a list of Crop objects
+    if len(my_player.harvested_inventory) >= 5:
+        decision = UseItemDecision()
+    
+    
+    # Get a list of possible harvest locations for our harvest radius (WHERE THE FUCKING GRAPES ARE)
     possible_harvest_locations = []
     harvest_radius = my_player.harvest_radius
     for harvest_pos in game_util.within_harvest_range(game_state, my_player.name):
-        if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.value > 0:
+        if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.type == CropType.GRAPE:
             possible_harvest_locations.append(harvest_pos)
-    logger.debug(f"Possible harvest locations={possible_harvest_locations}")
-    """
+    logger.debug(f"Possible harvest locations GRAPES={possible_harvest_locations}")
 
     # If we can harvest something, try to harvest it
     if len(possible_harvest_locations) > 0:
         decision = HarvestDecision(possible_harvest_locations)
+    """
     # If not but we have that seed, then try to plant it in a fertility band
     elif my_player.seed_inventory[crop] > 0 and \
             game_state.tile_map.get_tile(pos.x, pos.y).type != TileType.GREEN_GROCER and \
             game_state.tile_map.get_tile(pos.x, pos.y).type.value >= TileType.F_BAND_OUTER.value:
         logger.debug(f"Deciding to try to plant at position {pos}")
         decision = PlantDecision([crop], [pos])
+    """
+    
+    """
     # If we don't have that seed, but we have the money to buy it, then move towards the
     # green grocer to buy it
     elif my_player.money >= crop.get_seed_price() and \
@@ -127,7 +143,8 @@ def get_action_decision(game: Game) -> ActionDecision:
     else:
         logger.debug(f"Couldn't find anything to do, waiting for move step")
         decision = DoNothingDecision()
-
+    """
+    
     logger.debug(f"[Turn {game_state.turn}] Sending ActionDecision: {decision}")
     return decision
 
