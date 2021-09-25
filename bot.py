@@ -27,6 +27,7 @@ def move_towards(start: Position, original_target: Position) -> MoveDecision:
     displacement_x = original_target.x - start.x
     if abs(displacement_x) < remaining_distance:
         target_x = start.x + displacement_x
+        remaining_distance -= abs(displacement_x)
         
         displacement_y = original_target.y - start.y
         if abs(displacement_y) < remaining_distance:
@@ -78,9 +79,9 @@ def get_move_decision(game: Game) -> MoveDecision:
     grape_positions = []
     for y in range(game_state.tile_map.map_height):
         for x in range(game_state.tile_map.map_width):
-            if game_state.tile_map.get_tile(x,y).crop.value > 0:
-                grape_positions.append(x,y)
-    logger.debug(f"Grapes are located at {grape_positions}")
+            if game_state.tile_map.get_tile(x,y).crop.type != CropType.NONE:
+                grape_positions.append(Position(x,y))
+    # logger.debug(f"CROPS are located at {grape_positions}")
     
     if grape_positions:
         # find closest grape
@@ -91,7 +92,7 @@ def get_move_decision(game: Game) -> MoveDecision:
                 closest_target = potential_target
                 closest_distance = game_util.distance(pos, closest_target)
         
-        decision = move_towards(pos, target)
+        decision = move_towards(pos, closest_target)
         
     # don't protect around opponent
     elif game_util.distance(pos, opponent.position) <= my_player.protection_radius: #should probably also move out of their protection
@@ -136,26 +137,29 @@ def get_action_decision(game: Game) -> ActionDecision:
         if sum(my_player.seed_inventory.values()) > 0 else random.choice(list(CropType))
     """
     # Default to doing nothing.
-    logger.debug(f"Couldn't find anything to do, waiting for move step")
-    decision = DoNothingDecision()
     
-    # If I have 5 grapes, sell them using the DELIVERY_DRONE
+    
+    # If I have a full inventory, sell them using the DELIVERY_DRONE
     # harvested_inventory is a list of Crop objects
-    if len(my_player.harvested_inventory) >= 5:
+    if len(my_player.harvested_inventory) >= my_player.carrying_capacity or game_state.turn >= 179:
         decision = UseItemDecision()
-    
-    
-    # Get a list of possible harvest locations for our harvest radius (WHERE THE FUCKING GRAPES ARE)
-    possible_harvest_locations = []
-    harvest_radius = my_player.harvest_radius
-    for harvest_pos in game_util.within_harvest_range(game_state, my_player.name):
-        if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.type == CropType.GRAPE:
-            possible_harvest_locations.append(harvest_pos)
-    logger.debug(f"Possible harvest locations GRAPES={possible_harvest_locations}")
+        
+    else:
+        # Get a list of possible harvest locations for our harvest radius
+        possible_harvest_locations = []
+        harvest_radius = my_player.harvest_radius
+        for harvest_pos in game_util.within_harvest_range(game_state, my_player.name):
+            if game_state.tile_map.get_tile(harvest_pos.x, harvest_pos.y).crop.type != CropType.NONE:
+                possible_harvest_locations.append(harvest_pos)
+        logger.debug(f"Possible harvest locations NOT JUST GRAPES={possible_harvest_locations}")
 
-    # If we can harvest something, try to harvest it
-    if len(possible_harvest_locations) > 0:
-        decision = HarvestDecision(possible_harvest_locations)
+        # If we can harvest something, try to harvest it
+        if len(possible_harvest_locations) > 0:
+            decision = HarvestDecision(possible_harvest_locations)
+        else:
+            logger.debug(f"Couldn't find anything to do, waiting for move step")
+            decision = DoNothingDecision()
+        
     """
     # If not but we have that seed, then try to plant it in a fertility band
     elif my_player.seed_inventory[crop] > 0 and \
@@ -164,7 +168,7 @@ def get_action_decision(game: Game) -> ActionDecision:
         logger.debug(f"Deciding to try to plant at position {pos}")
         decision = PlantDecision([crop], [pos])
     """
-    
+        
     """
     # If we don't have that seed, but we have the money to buy it, then move towards the
     # green grocer to buy it

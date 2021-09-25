@@ -22,7 +22,7 @@ class Player:
         self.protection_radius = player_dict['protectionRadius']
         self.harvest_radius = player_dict['harvestRadius']
         self.plant_radius = player_dict['plantRadius']
-        self.carring_capacity = player_dict['carryingCapacity']
+        self.carrying_capacity = player_dict['carryingCapacity']
         self.max_movement = player_dict['maxMovement']
         self.double_drop_chance = player_dict['doubleDropChance']
         self.used_item = player_dict['usedItem']
