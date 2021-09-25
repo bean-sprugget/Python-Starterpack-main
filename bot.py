@@ -57,20 +57,23 @@ def get_move_decision(game: Game) -> MoveDecision:
     
     # Move towards grapes.
     grape_positions = []
-    for y in game_state.tile_height:
-        for x in game_state.tile_map.map_width:
-            if game_state.tile_map.get_tile(Position(x, y)).crop.type == CropType.GRAPE:
-                grape_positions.append(Position(x,y))
+    for y in range(game_state.tile_map.map_height):
+        for x in range(game_state.tile_map.map_width):
+            if game_state.tile_map.get_tile(x,y).crop.type == CropType.GRAPE:
+                grape_positions.append(x,y)
     logger.debug(f"Grapes are located at {grape_positions}")
-        
-    closest_target = grape_postitions[0]
-    closest_distance = game_util.distance(pos, closest_target)
-    for potential_target in grape_positions: if game_util.distance(pos, potential_target) < closest_distance:
-        closest_target = potential_target
+    
+    if grape_positions:
+        closest_target = grape_positions[0]
         closest_distance = game_util.distance(pos, closest_target)
+        for potential_target in grape_positions:
+            if game_util.distance(pos, potential_target) < closest_distance:
+                closest_target = potential_target
+                closest_distance = game_util.distance(pos, closest_target)
     
-    decision = MoveDecision(closest_target)
-    
+        decision = MoveDecision(closest_target)
+    else:
+        decision = MoveDecision(Position(constants.BOARD_WIDTH // 2, max(0, pos.y - constants.MAX_MOVEMENT) ) )
     logger.debug(f"[Turn {game_state.turn}] Sending MoveDecision: {decision}")
     return decision
 
